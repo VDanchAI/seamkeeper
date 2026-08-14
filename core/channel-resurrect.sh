@@ -17,8 +17,9 @@
 # 2-3. tmux-сессия и claude-процесс в ней живы? Если нет — помечаем на рестарт
 #      (сам рестарт выполняется ОДИН раз, после шага 4, чтобы не задвоить).
 # 4. bun-плагин слушает? Если tmux+claude живы, а плагина нет — тоже рестарт.
-# 5. Внешний сервис-компаньон (systemd-юнит, по умолчанию имя "jarvis") —
-#    active? Если нет — sudo systemctl restart.
+# 5. Внешний сервис-компаньон (твой отдельный systemd-юнит, если он есть) —
+#    active? Если COMPANION_SERVICE не задан — шаг пропускается (нет сервиса,
+#    нечего проверять). Если задан и не active — sudo systemctl restart.
 # 6. Health-чек: маркер дайджеста, heartbeat last_activity, окно rate-limit,
 #    воркер claude-mem, диск/память. Это ТОЛЬКО отчёт, ничего не чинит.
 # 7. Один сводный отчёт владельцу через notify-owner.sh (или в stdout под --dry).
@@ -45,7 +46,8 @@
 # Env-override (по образцу notify-owner.sh / watchdog-claude-telegram.sh):
 #   CHANNEL_LOG, CHANNEL_STATE_DIR, CHANNEL_SESSION_NAME, CHANNEL_BOT_PID,
 #   CHANNEL_ENV_FILE, CHANNEL_ACCESS_JSON, START_SCRIPT, REAP_SCRIPT, NOTIFY,
-#   JARVIS_SERVICE
+#   COMPANION_SERVICE — имя systemd-юнита твоего сервиса-компаньона (если есть).
+#   Пусто по умолчанию = шаг 5 пропускается, ничего не проверяет и не рестартует.
 # ═══════════════════════════════════════════════════════════════════════════
 set -uo pipefail
 
@@ -58,7 +60,9 @@ ACCESS_JSON="${CHANNEL_ACCESS_JSON:-$HOME/.claude/channels/telegram/access.json}
 START_SCRIPT="${START_SCRIPT:-/home/ubuntu/core/start-claude-telegram.sh}"
 REAP_SCRIPT="${REAP_SCRIPT:-/home/ubuntu/core/reap-telegram-orphans.sh}"
 NOTIFY="${NOTIFY:-/home/ubuntu/core/notify-owner.sh}"
-JARVIS_SERVICE="${JARVIS_SERVICE:-jarvis}"
+# Пусто по умолчанию — у большинства сборок нет отдельного сервиса-компаньона.
+# Задай COMPANION_SERVICE=имя-юнита, если у тебя есть такой systemd-сервис.
+COMPANION_SERVICE="${COMPANION_SERVICE:-}"
 
 mkdir -p "$STATE_DIR" 2>/dev/null
 
