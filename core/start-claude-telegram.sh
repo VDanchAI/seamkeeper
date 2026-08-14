@@ -185,7 +185,8 @@ fi
 
 # W4 14.08.2026: оградить канал от OOM-killer. Сегодня днём python раздулся до 8.5ГБ и
 # ядро убивало жертв по oom_score; канал (не systemd) был беззащитен. -400 сильно снижает
-# шанс, что под раздачу попадёт именно он. Jarvis защищён отдельно (systemd drop-in).
+# шанс, что под раздачу попадёт именно он. Сервис-компаньон (пример: ваш отдельный бот),
+# если он у вас есть и живёт под systemd, защищайте отдельно (systemd drop-in).
 for _p in $(pgrep -f "claude --dangerously-skip-permissions --channels" 2>/dev/null); do
     echo -400 > "/proc/$_p/oom_score_adj" 2>/dev/null || sudo sh -c "echo -400 > /proc/$_p/oom_score_adj" 2>/dev/null
 done

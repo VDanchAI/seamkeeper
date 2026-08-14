@@ -105,7 +105,7 @@ FLAP_LIMIT="${FLAP_LIMIT:-3}"             # ≥3 рестартов за окн�
 # ── W1 2026-08-14: константы двух новых подсистем (детектор лимита + reap/эскалация) ──
 # Все env-переопределяемы. Откат ФИЧИ ЛИМИТА целиком: LIMIT_MAX_WAIT=0 → окно не
 # армируется, поведение как до Волны 1. Значения — прикидка в духе существующих 900/1800,
-# калибруются по факту (см. WAVE1-DESIGN.md «ОТКРЫТЫЕ РИСКИ»).
+# калибруются по факту (см. docs/GRABLI.md).
 LIMIT_MAX_WAIT="${LIMIT_MAX_WAIT:-21600}"   # 6ч кап на лимитное окно — потолок цены ошибки
 LIMIT_MARGIN="${LIMIT_MARGIN:-120}"         # запас к моменту reset, чтобы не дёргаться раньше
 LIMIT_RESUME_MAX="${LIMIT_RESUME_MAX:-5}"   # ≤5 попыток оживить после сброса, потом зову руку
@@ -137,9 +137,12 @@ ORPHAN_MARKER="$STATE_DIR/orphan_since"           # grace-метка появл�
 REAP_MARKER="$STATE_DIR/last_reap"                # cooldown-метка реального отстрела
 
 # PATH: cron даёт /usr/bin:/bin, где лежит СТАРЫЙ claude 2.1.92 (симлинк npm), а не
-# рабочий 2.1.220 из nvm. Без этого любая проверка через `claude` тихо пошла бы не в тот
-# бинарник. Заодно нужны bun/ss/curl.
-export PATH="/home/ubuntu/.nvm/versions/node/v22.22.2/bin:/home/ubuntu/.bun/bin:/home/ubuntu/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+# рабочий из nvm. Без этого любая проверка через `claude` тихо пошла бы не в тот
+# бинарник. Заодно нужны bun/ss/curl. Версия node резолвится динамически (как в
+# start-claude-telegram.sh), а не захардкожена — иначе апгрейд nvm молча ломает
+# сторожа: путь к несуществующей версии просто выпадает из PATH без ошибки.
+NODE_BIN_DIR="/home/ubuntu/.nvm/versions/node/$(ls /home/ubuntu/.nvm/versions/node/ 2>/dev/null | tail -1)/bin"
+export PATH="$NODE_BIN_DIR:/home/ubuntu/.bun/bin:/home/ubuntu/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 
 # ── W1 2026-08-14: парсер времени сброса лимита ───────────────────────────────
 # Определён ДО flock, чтобы --selftest-parse (юнит-тест ниже) мог его вызвать без

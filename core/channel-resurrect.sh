@@ -197,21 +197,25 @@ else
     report "2-4/7 починка не требуется — канал живой стек не трогаю"
 fi
 
-# ── Шаг 5: внешний сервис-компаньон (например Jarvis) ──────────────────────
-JARVIS_STATUS=$(systemctl is-active "$JARVIS_SERVICE" 2>/dev/null)
-if [ "$JARVIS_STATUS" = "active" ]; then
-    report "5/7 сервис ($JARVIS_SERVICE): active"
+# ── Шаг 5: внешний сервис-компаньон (опционально) ──────────────────────────
+if [ -z "$COMPANION_SERVICE" ]; then
+    report "5/7 сервис-компаньон: не настроен (задай COMPANION_SERVICE=имя, если он у тебя есть)"
 else
-    report "5/7 сервис ($JARVIS_SERVICE): $JARVIS_STATUS — чиню"
-    if [ "$DRY_RUN" = "1" ]; then
-        report "5/7 DRY: sudo systemctl restart $JARVIS_SERVICE"
+    COMPANION_STATUS=$(systemctl is-active "$COMPANION_SERVICE" 2>/dev/null)
+    if [ "$COMPANION_STATUS" = "active" ]; then
+        report "5/7 сервис ($COMPANION_SERVICE): active"
     else
-        if sudo systemctl restart "$JARVIS_SERVICE" >> "$LOG" 2>&1; then
-            sleep 2
-            NEW_STATUS=$(systemctl is-active "$JARVIS_SERVICE" 2>/dev/null)
-            report "5/7 сервис рестарт: статус теперь $NEW_STATUS"
+        report "5/7 сервис ($COMPANION_SERVICE): $COMPANION_STATUS — чиню"
+        if [ "$DRY_RUN" = "1" ]; then
+            report "5/7 DRY: sudo systemctl restart $COMPANION_SERVICE"
         else
-            report "5/7 сервис рестарт: ОШИБКА — смотри $LOG"
+            if sudo systemctl restart "$COMPANION_SERVICE" >> "$LOG" 2>&1; then
+                sleep 2
+                NEW_STATUS=$(systemctl is-active "$COMPANION_SERVICE" 2>/dev/null)
+                report "5/7 сервис рестарт: статус теперь $NEW_STATUS"
+            else
+                report "5/7 сервис рестарт: ОШИБКА — смотри $LOG"
+            fi
         fi
     fi
 fi
@@ -239,9 +243,9 @@ else
 fi
 
 if pgrep -f 'claude-mem.*worker-service' >/dev/null 2>&1; then
-    report "6/7 claude-mem worker: жив"
+    report "6/7 claude-mem worker (опционально): жив"
 else
-    report "6/7 claude-mem worker: НЕ найден"
+    report "6/7 claude-mem worker (опциональный плагин памяти — НЕ найден это норма, если не ставил): НЕ найден"
 fi
 
 DISK=$(df -h / 2>/dev/null | awk 'NR==2{print $5" занято, "$4" свободно"}')
