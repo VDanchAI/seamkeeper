@@ -1,0 +1,36 @@
+# ═══ ЧТО ЭТО ═══════════════════════════════════════════════════════════════
+# systemd-юнит для Telegram-канала Claude Code. Даёт каналу пережить перезагрузку
+# сервера и системный сторож (Restart=on-failure), не подменяя ручной запуск.
+#
+# ═══ ЗАЧЕМ ═════════════════════════════════════════════════════════════════
+# tmux-сессия сама по себе не переживает ребут и не перезапускается после
+# падения. Юнит делает ровно две вещи поверх этого: поднимает канал при
+# старте системы (WantedBy=multi-user.target) и перезапускает его, если
+# ExecStart завершился с ошибкой (Restart=on-failure). Type=forking + long
+# RestartSec=30 — потому что сам процесс живёт в tmux, а не под systemd
+# напрямую: юнит лишь запускает start-claude-telegram.sh и считает свою
+# работу сделанной (RemainAfterExit=yes), реальным здоровьем канала
+# занимается channel-resurrect.sh/watchdog, а не systemd.
+#
+# ═══ КАК РАБОТАЕТ ══════════════════════════════════════════════════════════
+# ExecStart вызывает start-claude-telegram.sh — тот сам убивает старую tmux-
+# сессию, отстреливает осиротевший bun-плагин (reap-telegram-orphans.sh) и
+# поднимает новую. ExecStop — просто kill-session по имени "telegram".
+# Ставится: sudo systemctl enable --now claude-telegram.service
+# ═══════════════════════════════════════════════════════════════════════════
+[Unit]
+Description=Claude Code Telegram Channel
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=forking
+User=ubuntu
+ExecStart=/home/ubuntu/core/start-claude-telegram.sh
+ExecStop=/usr/bin/tmux kill-session -t telegram
+RemainAfterExit=yes
+Restart=on-failure
+RestartSec=30
+
+[Install]
+WantedBy=multi-user.target
