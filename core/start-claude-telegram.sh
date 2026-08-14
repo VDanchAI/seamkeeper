@@ -48,6 +48,7 @@ export PATH="$BUN_INSTALL/bin:$HOME/.local/bin:$HOME/.nvm/versions/node/$(ls $HO
 
 export CLAUDE_STREAM_IDLE_TIMEOUT_MS=300000
 export CHANNEL_SESSION=1  # W2: метка канальной сессии для heartbeat-фильтра
+export CLAUDE_CODE_RETRY_WATCHDOG=1  # native subscription-limit wait+retry (Anthropic) — complements the watchdog detector
 
 # Живой дайджест действий CLI → Telegram (см. core/cli-digest.sh + хук PreToolUse в
 # ~/.claude/settings.json). Единый выключатель — файл-маркер: есть = дайджест шлётся.
