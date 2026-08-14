@@ -1,5 +1,7 @@
 # Установка с нуля — от голого сервера до живого агента в Telegram
 
+*English version: [SETUP.en.md](SETUP.en.md)*
+
 Проверено на Ubuntu 24.04. Нужно: VPS (4+ ГБ RAM), подписка Claude (Pro/Max),
 аккаунт Telegram. Время: ~30 минут.
 
