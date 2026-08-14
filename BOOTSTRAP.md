@@ -177,7 +177,7 @@ server instead of blindly copying someone else's paths.
 ### Read before building
 
 `docs/GRABLI.md` (**mandatory** — a map of how this breaks in the real world),
-`README.en.md`, `docs/SETUP.md`.
+`README.md`, `docs/SETUP.md`.
 
 ### Self-check before declaring done
 

@@ -1,112 +1,121 @@
 # Seamkeeper — your self-healing pocket Claude on a VPS
 
+*Russian version: [README.ru.md](README.ru.md)*
+
 ![Indigo denim repaired with a copper seam](assets/brand/seamkeeper-hero-denim-copper.png)
 
-*Хранитель швов: личный серверный Claude, управляемый из Telegram, сшитый из рубцов реальных инцидентов — и умеющий сшивать себя сам.*
+*Keeper of seams: a personal server-side Claude you drive from Telegram, stitched together
+from the scars of real incidents — and able to stitch itself back up.*
 
-Seamkeeper — полевой протокол непрерывности и референсная реализация личного технического
-агента. Он держит агента доступным из Telegram, сохраняет нить работы через рестарты и
-восстанавливается после сбоев. Это не бот и не новый агент: агентом остаётся Claude Code.
-Seamkeeper — слой живучести вокруг него.
+Seamkeeper is a field-tested continuity protocol and reference implementation for a personal
+technical agent. It keeps the agent reachable from Telegram, carries the thread of work across
+restarts, and recovers after failures. It is not a bot and not a new agent: Claude Code remains
+the agent. Seamkeeper is a survival layer built around it.
 
-> ## 🪡 Самый быстрый способ
-> **Дай эту репу своему Claude Code на сервере и скажи:**
-> **«Собери мне вечную сессию по протоколу BOOTSTRAP.md»** — дальше он всё сделает сам:
-> спросит недостающее, адаптирует под твой сервер, проверит живучесть и отчитается.
+> ## 🪡 The fastest way in
+> **Hand this repo to your Claude Code on the server and say:**
+> **"Build me an eternal session following BOOTSTRAP.md"** — it takes it from there: asks what
+> it's missing, adapts to your server, verifies it survives, and reports back.
 >
-> [→ BOOTSTRAP.md](BOOTSTRAP.md) — протокол сборки (для агента) · [→ docs/SETUP.md](docs/SETUP.md) — ручной путь (для человека)
->
-> *Give this repo to your Claude and say: "build me an eternal session following BOOTSTRAP.md".*
+> [→ BOOTSTRAP.md](BOOTSTRAP.md) — the build protocol (for the agent) · [→ docs/SETUP.en.md](docs/SETUP.en.md) — the manual path (for a human)
 
-## Три ценности
+## Three values
 
-- **Reachable** — до агента можно достучаться из Telegram в любой момент, с любого устройства.
-- **Continuous** — нить работы и память переживают рестарты, лимиты подписки и рестарт сервера.
-- **Self-healing** — сторож различает классы отказов и чинит их сам, вместо бесконечных перезапусков.
+- **Reachable** — the agent is a Telegram message away, from any device, at any time.
+- **Continuous** — the thread of work and memory survive restarts, subscription limits, and
+  server reboots.
+- **Self-healing** — the watchdog tells failure classes apart and heals them, instead of
+  restarting forever.
 
-## Что это и чего это не делает
+## What it is and what it does not do
 
-**Это:** протокол живучести вокруг твоей интерактивной сессии Claude Code — Telegram-канал,
-сторож (watchdog), память и обвязка восстановления, выросшие из реальной эксплуатации.
+**It is:** a survival protocol wrapped around your interactive Claude Code session — a
+Telegram channel, a watchdog, memory, and recovery scaffolding, grown out of real production
+use.
 
-**Это не:** не отдельный бот и не новый агент; не универсальный фреймворк для любых LLM;
-не готовая поддержка Codex или других движков — это возможное будущее направление, а не текущий
-факт. Рабочая реализация сейчас построена вокруг Claude Code, tmux, Telegram и VPS.
+**It is not:** a standalone bot or a new agent; not a general-purpose framework for any LLM;
+not ready-made support for Codex or other engines — that's a possible future direction, not a
+current fact. The working implementation today is built around Claude Code, tmux, Telegram,
+and a VPS.
 
-## Почему он существует
+## Why it exists
 
-Это результат примерно восьми месяцев реальной эксплуатации и ремонта личной серверной сессии:
-каждая защита здесь выросла из наблюдаемого сбоя, а не из теории. Полная хроника отказов и
-починок — в [docs/GRABLI.md](docs/GRABLI.md), Книге граблей.
+This is the product of roughly eight months of real production use and repair of a personal
+server session: every safeguard here grew out of an observed failure, not a theory. The full
+history of failures and fixes lives in [docs/GRABLI.md](docs/GRABLI.md), the Book of Rakes
+(kept in Russian, with dated incident notes).
 
-## Безопасность
+## Security
 
-- **Секреты — только на сервере.** Токены, ключи и пароли никогда не вводятся и не пересылаются
-  через Telegram или любой другой чат.
-- **Ограничь Telegram-доступ allowlist'ом.** Открытый канал в личного агента с доступом к файлам
-  и bash — это поверхность атаки; список разрешённых пользователей обязателен.
-- **Режим широких разрешений — только на личном доверенном VPS.** Если Claude Code настроен с
-  широкими правами (файлы, bash, сеть), это допустимо исключительно на сервере, которым
-  управляешь только ты. Не разворачивай так на общих или продакшн-машинах без изоляции.
+- **Secrets live on the server only.** Tokens, keys, and passwords are never entered or sent
+  through Telegram or any other chat.
+- **Restrict Telegram access with an allowlist.** An open channel into a personal agent with
+  file and shell access is an attack surface; an allowlist of approved users is mandatory.
+- **Broad-permission mode belongs on a personal, trusted VPS only.** If Claude Code is
+  configured with wide-open permissions (files, bash, network), that's acceptable only on a
+  server you personally control. Do not run it that way on shared or production machines
+  without isolation.
 
-## Из чего состоит
 
-Подробная схема — в [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+## Architecture
+
+Full diagram and details: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ```
-Telegram ⇄ [бот-плагин] ⇄ Claude Code (интерактивная сессия в tmux) ⇄ твой сервер
-                                   ▲
-                     watchdog (cron, каждые 3 мин) — сторож и реаниматор
+Telegram ⇄ [bot plugin] ⇄ Claude Code (interactive session in tmux) ⇄ your server
+                                  ▲
+                    watchdog (cron, every 3 min) — guardian and resuscitator
 ```
 
-- **Канал** — обычный интерактивный `claude` в tmux-сессии, к нему подключён официальный
-  telegram-плагин. Всё, что умеет Claude Code (файлы, bash, агенты), доступно из чата.
-- **Watchdog** — cron-скрипт, который каждые 3 минуты проверяет 7 признаков жизни и лечит
-  отказы: от «процесс умер» до «жив, но молчит» и «упёрлись в лимит подписки — ждём сброса».
-- **Обвязка живучести** — отстрел процессов-зомби, ворующих очередь бота; дублирование
-  ответов в лог; запасной ввод через терминал; аварийный пуш, если основной путь умер.
-- **Память** — файловая система заметок + стартовые правила, благодаря которым агент помнит,
-  кто ты и что вы делаете, через рестарты и лимиты.
+- **The channel** is a regular interactive `claude` in a tmux session with the official
+  Telegram plugin attached. Everything Claude Code can do (files, bash, agents) is
+  available from your chat.
+- **The watchdog** is a cron script that checks 7 vital signs every 3 minutes and heals
+  failures: from "process died" to "alive but mute" and "hit the subscription limit —
+  wait for reset instead of thrashing".
+- **The survival kit** — reaping zombie processes that steal the bot's update queue;
+  mirroring every reply to a log; a terminal fallback input; an emergency push when the
+  primary path is dead.
+- **Memory** — a file-based note system plus startup rules, so the agent remembers who
+  you are and what you're working on across restarts and limits.
 
-## Карта файлов
+## File map
 
-| Файл | Что делает |
+| File | What it does |
 |---|---|
-| `core/start-claude-telegram.sh` | Поднимает канал: проверки перед стартом, восстановление контекста, tmux |
-| `core/watchdog-claude-telegram.sh` | Сторож: 7 проверок, лестница рестартов, детектор лимита подписки |
-| `core/reap-telegram-orphans.sh` | Убивает осиротевшие процессы бота, ворующие очередь (409 Conflict) |
-| `core/channel-resurrect.sh` | Одна команда «проверь и почини всё» + health-отчёт в Telegram |
-| `core/restart-channel-fresh.sh` | Чистый рестарт (без старого контекста) |
-| `core/channel-heartbeat.sh` | Сигналы «принял/ответил/работаю» для детектора тихих отказов |
-| `core/notify-owner.sh` | Прямой путь к владельцу через Bot API (работает, когда всё остальное лежит) |
-| `core/cli-digest.sh` | Живой дайджест действий агента в Telegram (одно самообновляющееся сообщение) |
-| `core/cli-digest-parse.py` | Парсер событий для cli-digest.sh |
-| `core/conv-mirror.sh` | Зеркало всех ответов в лог с меткой доставлено/нет + аварийный пуш |
-| `core/reply-guard.sh` | Не даёт агенту «ответить в пустоту» (в терминал вместо Telegram) |
-| `core/tell-agent.sh` | Запасной ввод: написать агенту из терминала, когда Telegram лежит |
-| `core/claude-telegram.service` | systemd-юнит для запуска канала как сервиса |
-| `hooks/` | Фрагмент settings.json — как подключить хуки |
-| `memory-template/` | Схема памяти: стартовые правила + шаблоны заметок |
-| `assets/brand/` | Визуальные материалы проекта (hero, аватар) |
-| `docs/SETUP.md` | Установка с нуля |
-| `docs/ARCHITECTURE.md` | Подробная архитектура и схема потоков |
-| `docs/GRABLI.md` | Книга граблей: реальные отказы и как они закрыты |
-| `docs/notes/` | Рабочие заметки и обсуждения по проекту |
+| `core/start-claude-telegram.sh` | Brings the channel up: pre-flight checks, context resume, tmux |
+| `core/watchdog-claude-telegram.sh` | The guardian: 7 checks, restart ladder, subscription-limit detector |
+| `core/reap-telegram-orphans.sh` | Kills orphaned bot pollers stealing the queue (409 Conflict) |
+| `core/channel-resurrect.sh` | One command: "check and fix everything" + health report to Telegram |
+| `core/restart-channel-fresh.sh` | Clean restart (no prior context) |
+| `core/channel-heartbeat.sh` | "Received / answered / working" signals for silent-failure detection |
+| `core/notify-owner.sh` | Direct Bot API path to the owner (works when everything else is down) |
+| `core/cli-digest.sh` | Live digest of agent actions in Telegram (one self-updating message) |
+| `core/cli-digest-parse.py` | Event parser for cli-digest.sh |
+| `core/conv-mirror.sh` | Mirror of all replies to a log with delivered/failed marks + emergency push |
+| `core/reply-guard.sh` | Stops the agent from "replying into the void" (terminal instead of Telegram) |
+| `core/tell-agent.sh` | Fallback input: talk to the agent from a terminal when Telegram is down |
+| `core/claude-telegram.service` | systemd unit to run the channel as a service |
+| `hooks/` | settings.json fragment — how to wire the hooks |
+| `memory-template/` | Memory schema: startup rules + note templates |
+| `assets/brand/` | Project visual assets (hero, avatar) |
+| `docs/SETUP.md` | Install from scratch (Russian; EN: SETUP.en.md) |
+| `docs/ARCHITECTURE.md` | Detailed architecture and data-flow diagram |
+| `docs/GRABLI.md` | The Book of Rakes: real failures and how each one is closed (Russian, dated incidents) |
+| `docs/notes/` | Working notes and project discussions |
 
-## Быстрый старт
+## Quick start
 
-См. [docs/SETUP.md](docs/SETUP.md). Кратко: сервер с Ubuntu → Claude Code CLI (подписка) →
-создать бота у @BotFather → токен в `~/.env` (chmod 600) → `bash core/start-claude-telegram.sh`
-→ добавить watchdog в cron. Всё.
+See [docs/SETUP.en.md](docs/SETUP.en.md). In short: Ubuntu server → Claude Code CLI
+(subscription) → create a bot with @BotFather → token into `~/.env` (chmod 600) →
+`bash core/start-claude-telegram.sh` → add the watchdog to cron. Done.
 
-## Принципы, на которых это держится
+## Principles this stands on
 
-1. **Секреты не ходят через чат.** Токены вводятся только на сервере. Никогда не проси
-   и не отправляй их в переписке.
-2. **Сторож не верит «процесс жив = всё хорошо».** Половина отказов — «жив, но молчит».
-   Поэтому heartbeat-сигналы и детектор тихих отказов.
-3. **Рестарт — не лекарство от всего.** Если упёрлись в лимит подписки, рестарты только жгут
-   попытки. Сторож это различает и умеет ждать.
-4. **Каждая починка объяснена.** Комментарий с датой и причиной — иначе через месяц сам
-   не вспомнишь, зачем эта строка.
-```
+1. **Secrets never travel through chat.** Tokens are entered on the server only.
+2. **The watchdog doesn't trust "process alive = all good".** Half of the failures are
+   "alive but mute" — hence heartbeat signals and silent-failure detection.
+3. **Restart is not a cure-all.** If you've hit the subscription limit, restarts only
+   burn attempts. The watchdog tells the difference and knows how to wait.
+4. **Every fix is explained.** A comment with a date and a reason — or a month later
+   nobody remembers why that line exists.
