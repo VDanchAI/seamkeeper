@@ -42,8 +42,8 @@ and a VPS.
 
 This is the product of roughly eight months of real production use and repair of a personal
 server session: every safeguard here grew out of an observed failure, not a theory. The full
-history of failures and fixes lives in [docs/GRABLI.md](docs/GRABLI.md), the Book of Rakes
-(kept in Russian, with dated incident notes).
+history of failures and fixes lives in [docs/GRABLI.en.md](docs/GRABLI.en.md), the Book of Rakes
+(with dated incident notes; Russian original: [GRABLI.md](docs/GRABLI.md)).
 
 ## Security
 
@@ -96,12 +96,12 @@ Telegram ⇄ [bot plugin] ⇄ Claude Code (interactive session in tmux) ⇄ your
 | `core/reply-guard.sh` | Stops the agent from "replying into the void" (terminal instead of Telegram) |
 | `core/tell-agent.sh` | Fallback input: talk to the agent from a terminal when Telegram is down |
 | `core/claude-telegram.service` | systemd unit to run the channel as a service |
-| `hooks/` | settings.json fragment — how to wire the hooks |
-| `memory-template/` | Memory schema: startup rules + note templates |
+| `hooks/` | settings.json fragment — how to wire the hooks (EN: `hooks/README.en.md`) |
+| `memory-template/` | Memory schema: startup rules + note templates (EN: `memory-template/README.en.md`) |
 | `assets/brand/` | Project visual assets (hero, avatar) |
-| `docs/SETUP.md` | Install from scratch (Russian; EN: SETUP.en.md) |
+| `docs/SETUP.en.md` | Install from scratch (English; Russian original: SETUP.md) |
 | `docs/ARCHITECTURE.md` | Detailed architecture and data-flow diagram |
-| `docs/GRABLI.md` | The Book of Rakes: real failures and how each one is closed (Russian, dated incidents) |
+| `docs/GRABLI.en.md` | The Book of Rakes: real failures and how each one is closed (English; Russian: GRABLI.md, dated incidents) |
 | `docs/notes/` | Working notes and project discussions |
 
 ## Quick start

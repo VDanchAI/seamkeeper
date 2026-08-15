@@ -24,11 +24,16 @@
 # tmux — дом для сессии агента; jq/python3 — для обвязки
 sudo apt update && sudo apt install -y tmux jq python3 curl
 
+# bun — рантайм telegram-плагина Claude Code (плагин на bun, без него канал не поднимется)
+curl -fsSL https://bun.sh/install | bash
+
 # swap — страховка от OOM (наш инцидент: процесс раздулся до 8.5ГБ, ядро стреляло соседей)
+# grep-гварды делают шаг идемпотентным: повторный прогон не задвоит строки в fstab/sysctl.conf
 sudo fallocate -l 4G /swapfile && sudo chmod 600 /swapfile
 sudo mkswap /swapfile && sudo swapon /swapfile
-echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
-sudo sysctl -w vm.swappiness=10 && echo 'vm.swappiness=10' | sudo tee -a /etc/sysctl.conf
+grep -q '/swapfile' /etc/fstab || echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+sudo sysctl -w vm.swappiness=10
+grep -q '^vm.swappiness' /etc/sysctl.conf || echo 'vm.swappiness=10' | sudo tee -a /etc/sysctl.conf
 ```
 
 ## 2. Claude Code CLI
@@ -114,12 +119,18 @@ chat_id. Именно из него дайджест (`cli-digest.sh`) и ава
 
 ```bash
 crontab -e
-# добавь:
+# добавь (ЗАМЕНИ /home/ubuntu на свой домашний каталог — cron не раскроет $HOME
+# внутри строки надёжно; строка HOME=... вверху crontab фиксирует его явно):
+HOME=/home/ubuntu
 @reboot sleep 15 && /home/ubuntu/core/start-claude-telegram.sh
 */3 * * * * /home/ubuntu/core/watchdog-claude-telegram.sh
 ```
 С этого момента система самоподдерживающаяся: падения, зомби, лимиты подписки —
 сторож лечит сам, о нерешаемом напишет тебе в Telegram.
+
+> **Заметка про node.** Сторож ищет node в `~/.nvm`. Если ты ставил Claude через
+> `install.sh` (node лёг в `~/.local/bin`, без nvm), этого пути не будет — убедись,
+> что каталог с твоим `node` попадает в PATH сессии, поднимающей канал.
 
 ## 8. Проверка живучести (сразу, не «потом»)
 

@@ -24,12 +24,19 @@ Tested on Ubuntu 24.04. You'll need: a VPS (4+ GB RAM), a Claude subscription
 # tmux — home for the agent's session; jq/python3 — for the plumbing
 sudo apt update && sudo apt install -y tmux jq python3 curl
 
+# bun — runtime for Claude Code's telegram plugin (the plugin runs on bun;
+# without it the channel won't come up)
+curl -fsSL https://bun.sh/install | bash
+
 # swap — insurance against OOM (our own incident: a process ballooned to
 # 8.5GB and the kernel started shooting its neighbors)
+# the grep guards make this step idempotent: a re-run won't duplicate lines
+# in fstab/sysctl.conf
 sudo fallocate -l 4G /swapfile && sudo chmod 600 /swapfile
 sudo mkswap /swapfile && sudo swapon /swapfile
-echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
-sudo sysctl -w vm.swappiness=10 && echo 'vm.swappiness=10' | sudo tee -a /etc/sysctl.conf
+grep -q '/swapfile' /etc/fstab || echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+sudo sysctl -w vm.swappiness=10
+grep -q '^vm.swappiness' /etc/sysctl.conf || echo 'vm.swappiness=10' | sudo tee -a /etc/sysctl.conf
 ```
 
 ## 2. Claude Code CLI
@@ -73,7 +80,7 @@ don't need to set that flag by hand, just install the plugin itself.
 of Claude Code's feature flags — along with telemetry, the detection of
 whether channel mode is even available goes dark too (symptom: "Channels are
 not currently available" with no clear reason). Details and the full
-incident writeup are in [GRABLI.md](GRABLI.md), item 4 ("DO_NOT_TRACK mutes
+incident writeup are in [GRABLI.en.md](GRABLI.en.md), item 4 ("DO_NOT_TRACK mutes
 the channels feature flag"). Before starting the channel, make sure
 `DO_NOT_TRACK` isn't set anywhere for the process that brings up the
 session.
@@ -91,7 +98,7 @@ cp seamkeeper/memory-template/CLAUDE.md.template ~/CLAUDE.md   # edit this to fi
 
 Insert the `hooks/settings-fragment.json` fragment into
 `~/.claude/settings.json` (instructions and validation are in
-`hooks/README.md`). Always: backup → edit →
+`hooks/README.en.md`). Always: backup → edit →
 `python3 -m json.tool < ~/.claude/settings.json` — broken JSON breaks EVERY
 session.
 
@@ -123,13 +130,21 @@ your `~/.claude`, so the channel won't come up right under it.
 
 ```bash
 crontab -e
-# add:
+# add (REPLACE /home/ubuntu with your own home directory — cron won't expand
+# $HOME reliably inside the line; the HOME=... line at the top of the crontab
+# pins it explicitly):
+HOME=/home/ubuntu
 @reboot sleep 15 && /home/ubuntu/core/start-claude-telegram.sh
 */3 * * * * /home/ubuntu/core/watchdog-claude-telegram.sh
 ```
 From this point on the system is self-sustaining: crashes, zombies,
 subscription limits — the watchdog heals them itself, and messages you on
 Telegram about anything it can't fix.
+
+> **A note on node.** The watchdog looks for node under `~/.nvm`. If you
+> installed Claude via `install.sh` (node landed in `~/.local/bin`, no nvm),
+> that path won't exist — make sure the directory holding your `node` is in
+> the PATH of the session that brings up the channel.
 
 ## 8. Survivability check (do it now, not "later")
 
@@ -147,5 +162,5 @@ right in the last few lines of the log.
 
 ## If something's wrong
 
-→ [GRABLI.md](GRABLI.md) — every known way this breaks, with the fix. Your
+→ [GRABLI.en.md](GRABLI.en.md) — every known way this breaks, with the fix. Your
 case is almost certainly in there: we've already stepped on this rake.
