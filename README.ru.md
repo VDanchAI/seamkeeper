@@ -2,7 +2,7 @@
 
 *English version: [README.md](README.md)* · *История изменений: [CHANGELOG.ru.md](CHANGELOG.ru.md)*
 
-![Indigo denim repaired with a copper seam](assets/brand/seamkeeper-hero-denim-copper.png)
+![Indigo denim repaired with a copper seam](assets/brand/seamkeeper-hero-denim-copper.jpg)
 
 *Хранитель швов: личный серверный Claude, управляемый из Telegram, сшитый из рубцов реальных инцидентов — и умеющий сшивать себя сам.*
 

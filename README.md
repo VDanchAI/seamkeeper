@@ -2,7 +2,7 @@
 
 *Russian version: [README.ru.md](README.ru.md)* · *Changelog: [CHANGELOG.md](CHANGELOG.md)*
 
-![Indigo denim repaired with a copper seam](assets/brand/seamkeeper-hero-denim-copper.png)
+![Indigo denim repaired with a copper seam](assets/brand/seamkeeper-hero-denim-copper.jpg)
 
 *Keeper of seams: a personal server-side Claude you drive from Telegram, stitched together
 from the scars of real incidents — and able to stitch itself back up.*
