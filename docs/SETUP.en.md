@@ -111,6 +111,20 @@ The script will: verify the token (getMe), clean up orphaned pollers, check
 the update queue for a 409, bring up the `telegram` tmux session, and clear
 the trust prompt. You should see "started".
 
+> **About the trust prompt (important as of Claude Code 2.1.273).** On first launch in a
+> folder, Claude asks "Do you trust the files in this folder?". In 2.1.273 this dialog was
+> **inverted**: the refusal option ("No, exit") is now selected by default. A blind Enter —
+> which used to work — therefore picks *exit*, and the session dies right after startup
+> while the log still says "started". The script handles this in two layers: it first marks
+> the folder as trusted in `~/.claude.json` (`projects."<path>".hasTrustDialogAccepted: true`),
+> so the prompt never appears; if it shows up anyway, the script sends **Down, then Enter**
+> instead of Enter alone.
+>
+> If you see "started" but the bot stays silent, check the session screen first:
+> `tmux capture-pane -t telegram -p | tail -20`. A stuck or declined trust dialog is
+> immediately visible there. Anthropic has already changed the option order once, so don't
+> rely on "press the Nth key" — rely on the `~/.claude.json` entry.
+
 Message your bot on Telegram. The first message will ask for pairing — on
 the server's terminal run `claude` and execute `/telegram:access`, then
 approve yourself. (Only yourself! This is an allowlist.)

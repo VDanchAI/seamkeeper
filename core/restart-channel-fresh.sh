@@ -54,8 +54,15 @@ TMUX= tmux new-session -d -s "$SESSION_NAME" \
 sleep 15
 PANE=$(TMUX= tmux capture-pane -t "$SESSION_NAME" -p 2>/dev/null)
 if echo "$PANE" | grep -q "trust"; then
+    # 17.09.2026, Claude Code 2.1.273: промпт доверия к папке перевёрнут — по умолчанию
+    # подсвечен отказ. Слепой Enter выбирал выход, и «чистый рестарт» убивал сессию
+    # вместо подъёма. Сначала Down («Yes, I trust»), затем Enter.
+    # На корню это лечит штатный старт (start-claude-telegram.sh проставляет
+    # hasTrustDialogAccepted в ~/.claude.json); здесь оставлена страховка.
+    TMUX= tmux send-keys -t "$SESSION_NAME" Down
+    sleep 1
     TMUX= tmux send-keys -t "$SESSION_NAME" Enter
-    log "Trust prompt принят"
+    log "Trust prompt принят (Down+Enter: с 2.1.273 дефолт — отказ)"
 fi
 
 if TMUX= tmux has-session -t "$SESSION_NAME" 2>/dev/null; then

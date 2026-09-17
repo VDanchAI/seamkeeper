@@ -169,17 +169,81 @@ TMUX= tmux new-session -d -s "$SESSION_NAME" \
     --channels plugin:telegram@claude-plugins-official \
     --allowedTools \"Bash Read Write Edit Glob Grep WebFetch WebSearch Agent NotebookEdit mcp__plugin_telegram_telegram__reply mcp__plugin_telegram_telegram__react mcp__plugin_telegram_telegram__edit_message mcp__plugin_telegram_telegram__download_attachment\"'"
 
-# Wait for Claude to initialize, then pass trust prompt if it appears
+# Wait for Claude to initialize, then pass trust prompt if it appears.
+#
+# 17.09.2026, Claude Code 2.1.273 — ДВА изменения, оба ломали автозапуск:
+#
+#   1. Промпт «Do you trust the files in this folder?» ПЕРЕВЁРНУЛСЯ: по умолчанию
+#      подсвечен вариант отказа («No, exit»). Слепой Enter, который работал годом раньше,
+#      теперь выбирает ВЫХОД — сессия молча умирает сразу после старта, а лог показывает
+#      «started». Поэтому ниже сначала Down (перевод на «Yes, I trust»), потом Enter.
+#      Не полагайтесь на порядок вариантов: он уже менялся и может поменяться снова.
+#
+#   2. Согласие НЕ сохранялось между запусками, и промпт вылезал на каждом рестарте.
+#      Лечится на корню: доверие к папке живёт в ~/.claude.json, в projects."<путь>".
+#      hasTrustDialogAccepted. Проставляем его ДО старта — тогда промпта просто нет,
+#      и мы не зависим от слепого нажатия клавиш в tmux.
+#
+# Слой 1 (профилактика): заранее объявить рабочую папку доверенной.
+trust_workdir() {
+    local workdir="${1:-$HOME}" cfg="$HOME/.claude.json"
+    python3 - "$cfg" "$workdir" <<'PY' 2>/dev/null || return 1
+import json, os, sys, tempfile
+cfg, workdir = sys.argv[1], sys.argv[2]
+try:
+    data = json.load(open(cfg)) if os.path.exists(cfg) else {}
+except (json.JSONDecodeError, OSError):
+    # Битый или недоступный конфиг не трогаем: пусть сработает слой 2.
+    sys.exit(1)
+if not isinstance(data, dict):
+    sys.exit(1)
+projects = data.setdefault("projects", {})
+if not isinstance(projects, dict):
+    sys.exit(1)
+entry = projects.setdefault(workdir, {})
+if not isinstance(entry, dict):
+    sys.exit(1)
+if entry.get("hasTrustDialogAccepted") is True:
+    sys.exit(2)                      # уже доверено, писать нечего
+entry["hasTrustDialogAccepted"] = True
+# Пишем через временный файл в том же каталоге + atomic replace: обрыв на записи
+# не должен оставить пользователя с обрезанным ~/.claude.json.
+d = os.path.dirname(cfg) or "."
+fd, tmp = tempfile.mkstemp(dir=d, prefix=".claude.json.")
+try:
+    with os.fdopen(fd, "w") as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
+    if os.path.exists(cfg):
+        os.chmod(tmp, os.stat(cfg).st_mode & 0o777)
+    os.replace(tmp, cfg)
+except Exception:
+    os.unlink(tmp)
+    raise
+PY
+}
+
+trust_workdir "$HOME"
+case $? in
+    0) log "Trust: рабочая папка объявлена доверенной в ~/.claude.json" ;;
+    2) : ;;  # уже стояло
+    *) log "Trust: не смог обновить ~/.claude.json — рассчитываю на перехват промпта" ;;
+esac
+
+# Слой 2 (страховка): если промпт всё же появился — принять его осознанно.
 sleep 15
 PANE=$(TMUX= tmux capture-pane -t "$SESSION_NAME" -p 2>/dev/null)
 if echo "$PANE" | grep -q "trust"; then
+    TMUX= tmux send-keys -t "$SESSION_NAME" Down
+    sleep 1
     TMUX= tmux send-keys -t "$SESSION_NAME" Enter
-    log "Trust prompt accepted"
+    log "Trust prompt accepted (Down+Enter: с 2.1.273 дефолт — отказ)"
 fi
 sleep 3
 # Second check — sometimes prompt appears later
 PANE=$(TMUX= tmux capture-pane -t "$SESSION_NAME" -p 2>/dev/null)
 if echo "$PANE" | grep -q "trust"; then
+    TMUX= tmux send-keys -t "$SESSION_NAME" Down
+    sleep 1
     TMUX= tmux send-keys -t "$SESSION_NAME" Enter
     log "Trust prompt accepted (second pass)"
 fi
