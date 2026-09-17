@@ -56,13 +56,30 @@ PANE=$(TMUX= tmux capture-pane -t "$SESSION_NAME" -p 2>/dev/null)
 if echo "$PANE" | grep -q "trust"; then
     # 17.09.2026, Claude Code 2.1.273: промпт доверия к папке перевёрнут — по умолчанию
     # подсвечен отказ. Слепой Enter выбирал выход, и «чистый рестарт» убивал сессию
-    # вместо подъёма. Сначала Down («Yes, I trust»), затем Enter.
+    # вместо подъёма.
+    #
+    # Нажатие зависит от версии, поэтому определяем её (на старых версиях Down выбрал бы
+    # как раз отказ — нельзя жать вслепую):
+    #   2.1.273+   → Down, затем Enter
+    #   старее     → только Enter
     # На корню это лечит штатный старт (start-claude-telegram.sh проставляет
-    # hasTrustDialogAccepted в ~/.claude.json); здесь оставлена страховка.
-    TMUX= tmux send-keys -t "$SESSION_NAME" Down
-    sleep 1
+    # hasTrustDialogAccepted в ~/.claude.json, что от версии не зависит); здесь страховка.
+    _cc_v=$(claude --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+    _needs_down=1   # версию не определили — исходим из нового поведения
+    if [ -n "$_cc_v" ]; then
+        IFS=. read -r _maj _min _pat <<<"$_cc_v"
+        if [ "$_maj" -eq 2 ] && [ "$_min" -eq 1 ] && [ "$_pat" -lt 273 ]; then
+            _needs_down=0
+        elif [ "$_maj" -lt 2 ] || { [ "$_maj" -eq 2 ] && [ "$_min" -lt 1 ]; }; then
+            _needs_down=0
+        fi
+    fi
+    if [ "$_needs_down" = "1" ]; then
+        TMUX= tmux send-keys -t "$SESSION_NAME" Down
+        sleep 1
+    fi
     TMUX= tmux send-keys -t "$SESSION_NAME" Enter
-    log "Trust prompt принят (Down+Enter: с 2.1.273 дефолт — отказ)"
+    log "Trust prompt принят (версия ${_cc_v:-неизвестна}, Down=${_needs_down})"
 fi
 
 if TMUX= tmux has-session -t "$SESSION_NAME" 2>/dev/null; then

@@ -124,6 +124,19 @@ the trust prompt. You should see "started".
 > `tmux capture-pane -t telegram -p | tail -20`. A stuck or declined trust dialog is
 > immediately visible there. Anthropic has already changed the option order once, so don't
 > rely on "press the Nth key" — rely on the `~/.claude.json` entry.
+>
+> **Version compatibility.** Which keys to send depends on your Claude Code version, so the
+> script detects it (`claude --version`) and adapts:
+>
+> | Claude Code | Keys sent |
+> |---|---|
+> | 2.1.273 and newer | `Down`, then `Enter` (refusal is the default) |
+> | older than 2.1.273 | `Enter` only (consent is the default) |
+> | version undetectable | treated as newer |
+>
+> On an older install nothing is required from you — the script behaves as before. Upgrade
+> Claude Code and it switches automatically. The `~/.claude.json` layer is version-independent
+> and applies in all cases.
 
 Message your bot on Telegram. The first message will ask for pairing — on
 the server's terminal run `claude` and execute `/telegram:access`, then

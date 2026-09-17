@@ -230,22 +230,56 @@ case $? in
 esac
 
 # Слой 2 (страховка): если промпт всё же появился — принять его осознанно.
+#
+# ВНИМАНИЕ про совместимость. Нажатие зависит от версии Claude Code:
+#   • 2.1.273 и новее — по умолчанию подсвечен отказ  → нужен Down, затем Enter
+#   • старее 2.1.273  — по умолчанию подсвечено согласие → нужен только Enter
+# Слепое «жать как в новой версии» сломало бы старые установки: там Down переводит
+# как раз НА отказ. Поэтому определяем версию и выбираем нажатие под неё.
+# Слой 1 выше от версии не зависит и работает всюду — он и есть основная защита.
+
+# Сравнение версий без внешних зависимостей: возвращает 0, если установленная >= 2.1.273.
+cc_at_least_2_1_273() {
+    local v major minor patch
+    v=$(claude --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+    [ -z "$v" ] && return 2          # версия не определилась
+    IFS=. read -r major minor patch <<<"$v"
+    [ "$major" -gt 2 ] && return 0
+    [ "$major" -lt 2 ] && return 1
+    [ "$minor" -gt 1 ] && return 0
+    [ "$minor" -lt 1 ] && return 1
+    [ "$patch" -ge 273 ] && return 0
+    return 1
+}
+
+cc_at_least_2_1_273
+case $? in
+    0) TRUST_NEEDS_DOWN=1; log "Trust: Claude Code >= 2.1.273 — промпт перевёрнут, буду жать Down+Enter" ;;
+    1) TRUST_NEEDS_DOWN=0; log "Trust: Claude Code старее 2.1.273 — прежнее поведение, только Enter" ;;
+    *) TRUST_NEEDS_DOWN=1; log "Trust: версию Claude Code определить не смог — исхожу из нового поведения (Down+Enter)" ;;
+esac
+
+# Принять промпт доверия сообразно версии.
+accept_trust_prompt() {
+    local pass="$1"
+    if [ "$TRUST_NEEDS_DOWN" = "1" ]; then
+        TMUX= tmux send-keys -t "$SESSION_NAME" Down
+        sleep 1
+    fi
+    TMUX= tmux send-keys -t "$SESSION_NAME" Enter
+    log "Trust prompt accepted ($pass)"
+}
+
 sleep 15
 PANE=$(TMUX= tmux capture-pane -t "$SESSION_NAME" -p 2>/dev/null)
 if echo "$PANE" | grep -q "trust"; then
-    TMUX= tmux send-keys -t "$SESSION_NAME" Down
-    sleep 1
-    TMUX= tmux send-keys -t "$SESSION_NAME" Enter
-    log "Trust prompt accepted (Down+Enter: с 2.1.273 дефолт — отказ)"
+    accept_trust_prompt "first pass"
 fi
 sleep 3
 # Second check — sometimes prompt appears later
 PANE=$(TMUX= tmux capture-pane -t "$SESSION_NAME" -p 2>/dev/null)
 if echo "$PANE" | grep -q "trust"; then
-    TMUX= tmux send-keys -t "$SESSION_NAME" Down
-    sleep 1
-    TMUX= tmux send-keys -t "$SESSION_NAME" Enter
-    log "Trust prompt accepted (second pass)"
+    accept_trust_prompt "second pass"
 fi
 
 # W4 14.08.2026: оградить канал от OOM-killer. Сегодня днём python раздулся до 8.5ГБ и

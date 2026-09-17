@@ -1,6 +1,6 @@
 # Seamkeeper — your self-healing pocket Claude on a VPS
 
-*Russian version: [README.ru.md](README.ru.md)*
+*Russian version: [README.ru.md](README.ru.md)* · *Changelog: [CHANGELOG.md](CHANGELOG.md)*
 
 ![Indigo denim repaired with a copper seam](assets/brand/seamkeeper-hero-denim-copper.png)
 
@@ -109,6 +109,32 @@ Telegram ⇄ [bot plugin] ⇄ Claude Code (interactive session in tmux) ⇄ your
 See [docs/SETUP.en.md](docs/SETUP.en.md). In short: Ubuntu server → Claude Code CLI
 (subscription) → create a bot with @BotFather → token into `~/.env` (chmod 600) →
 `bash core/start-claude-telegram.sh` → add the watchdog to cron. Done.
+
+## Claude Code version compatibility
+
+Works with both current and older Claude Code releases — **no action needed on your side.**
+
+Claude Code 2.1.273 inverted the "Do you trust the files in this folder?" dialog: the
+refusal option is now selected by default. A blind `Enter`, which earlier versions accepted
+as consent, therefore picks *exit* — the session dies right after launch while the log still
+reports "started". Silent, and it looks like success.
+
+The startup scripts handle this on two levels:
+
+1. **Version-independent.** The working directory is marked as trusted in `~/.claude.json`
+   (`projects."<path>".hasTrustDialogAccepted`) before launch, so the dialog never appears.
+2. **Version-aware fallback.** If the dialog shows up anyway, the script reads
+   `claude --version` and presses accordingly:
+
+   | Claude Code | Keys sent |
+   |---|---|
+   | 2.1.273 and newer | `Down`, then `Enter` |
+   | older than 2.1.273 | `Enter` only |
+   | version undetectable | treated as newer |
+
+So an older install keeps working as before, and upgrading Claude Code switches the
+behaviour automatically. The option order has already changed once, so don't hardcode
+"press the Nth key" in your own forks — rely on the config entry instead.
 
 ## Principles this stands on
 
